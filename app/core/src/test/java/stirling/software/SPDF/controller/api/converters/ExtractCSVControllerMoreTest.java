@@ -85,11 +85,15 @@ class ExtractCSVControllerMoreTest {
             request.setPageNumbers("all");
 
             when(pdfDocumentFactory.load(request)).thenReturn(docWithPages(1));
-            when(tabulaTableParser.parse(any(PDDocument.class), eq(1))).thenReturn(List.of());
+            when(tabulaTableParser.parseAuto(any(PDDocument.class), eq(1))).thenReturn(List.of());
 
-            ResponseEntity<?> response = controller.pdfToCsv(request);
-
-            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+            assertThatThrownBy(() -> controller.pdfToCsv(request))
+                    .isInstanceOf(org.springframework.web.server.ResponseStatusException.class)
+                    .extracting(
+                            e ->
+                                    ((org.springframework.web.server.ResponseStatusException) e)
+                                            .getStatusCode())
+                    .isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         @Test
@@ -100,7 +104,7 @@ class ExtractCSVControllerMoreTest {
             request.setPageNumbers("all");
 
             when(pdfDocumentFactory.load(request)).thenReturn(docWithPages(1));
-            when(tabulaTableParser.parse(any(PDDocument.class), eq(1)))
+            when(tabulaTableParser.parseAuto(any(PDDocument.class), eq(1)))
                     .thenReturn(
                             List.of(
                                     fragment(
@@ -125,9 +129,9 @@ class ExtractCSVControllerMoreTest {
             request.setPageNumbers("all");
 
             when(pdfDocumentFactory.load(request)).thenReturn(docWithPages(2));
-            when(tabulaTableParser.parse(any(PDDocument.class), eq(1)))
+            when(tabulaTableParser.parseAuto(any(PDDocument.class), eq(1)))
                     .thenReturn(List.of(fragment(List.of(List.of("a", "b")))));
-            when(tabulaTableParser.parse(any(PDDocument.class), eq(2)))
+            when(tabulaTableParser.parseAuto(any(PDDocument.class), eq(2)))
                     .thenReturn(
                             List.of(
                                     fragment(List.of(List.of("c", "d"))),
@@ -172,7 +176,7 @@ class ExtractCSVControllerMoreTest {
             request.setPageNumbers("all");
 
             when(pdfDocumentFactory.load(request)).thenReturn(docWithPages(1));
-            when(tabulaTableParser.parse(any(PDDocument.class), eq(1)))
+            when(tabulaTableParser.parseAuto(any(PDDocument.class), eq(1)))
                     .thenThrow(new java.io.IOException("parse boom"));
 
             assertThatThrownBy(() -> controller.pdfToCsv(request))
@@ -201,7 +205,7 @@ class ExtractCSVControllerMoreTest {
         request.setPageNumbers("all");
 
         when(pdfDocumentFactory.load(request)).thenReturn(docWithPages(1));
-        when(tabulaTableParser.parse(any(PDDocument.class), eq(1)))
+        when(tabulaTableParser.parseAuto(any(PDDocument.class), eq(1)))
                 .thenReturn(List.of(fragment(List.of(List.of("x", "y")))));
 
         ResponseEntity<?> response = controller.pdfToCsv(request);

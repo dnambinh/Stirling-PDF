@@ -65,10 +65,47 @@ public class TabulaTableParser implements TableParser {
         return parse(document, new RawPage(pageNumber, 0f, 0f, List.of()));
     }
 
+    /**
+     * Auto mode: prefer lattice for ruled tables, then fall back to stream for borderless tables.
+     * Results from the two modes are never merged, which avoids duplicate tables.
+     */
+    public List<TableFragment> parseAuto(PDDocument document, RawPage rawPage) throws IOException {
+        List<TableFragment> latticeTables = parse(document, rawPage);
+        if (hasUsableTable(latticeTables)) {
+            return latticeTables;
+        }
+
+        log.debug(
+                "Page {}: lattice produced no usable table; trying stream mode",
+                rawPage.pageNumber());
+        List<TableFragment> streamTables = parseStream(document, rawPage);
+        return hasUsableTable(streamTables) ? streamTables : List.of();
+    }
+
+    /** Convenience overload for auto mode when only the page number is available. */
+    public List<TableFragment> parseAuto(PDDocument document, int pageNumber) throws IOException {
+        return parseAuto(document, new RawPage(pageNumber, 0f, 0f, List.of()));
+    }
+
     /** Stream mode — whitespace-based column detection for borderless tables. */
     public List<TableFragment> parseStream(PDDocument document, RawPage rawPage)
             throws IOException {
         return parseWithAlgorithm(document, rawPage, new BasicExtractionAlgorithm(), "stream");
+    }
+
+    private boolean hasUsableTable(List<TableFragment> fragments) {
+        return fragments.stream()
+                .anyMatch(
+                        fragment -> {
+                            long nonBlankCells =
+                                    fragment.rawRows().stream()
+                                            .flatMap(Collection::stream)
+                                            .filter(cell -> !cell.isBlank())
+                                            .count();
+                            return fragment.columnCount() >= 2
+                                    && fragment.rawRows().size() >= 2
+                                    && nonBlankCells >= 4;
+                        });
     }
 
     private List<TableFragment> parseWithAlgorithm(

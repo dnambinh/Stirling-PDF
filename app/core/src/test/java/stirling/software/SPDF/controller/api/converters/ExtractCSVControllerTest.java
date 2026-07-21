@@ -2,6 +2,9 @@ package stirling.software.SPDF.controller.api.converters;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 
 import java.util.List;
@@ -16,8 +19,8 @@ import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import stirling.software.SPDF.model.api.PDFWithPageNums;
 import stirling.software.SPDF.pdf.parser.TabulaTableParser;
@@ -33,7 +36,7 @@ class ExtractCSVControllerTest {
     @InjectMocks private ExtractCSVController controller;
 
     @Test
-    void pdfToCsv_noTablesReturnsNoContent() throws Exception {
+    void pdfToCsv_noTablesReturnsUnprocessableEntity() throws Exception {
         MockMultipartFile pdfFile =
                 new MockMultipartFile(
                         "fileInput", "data.pdf", "application/pdf", "content".getBytes());
@@ -46,6 +49,7 @@ class ExtractCSVControllerTest {
         emptyDoc.addPage(new PDPage());
 
         when(pdfDocumentFactory.load(request)).thenReturn(emptyDoc);
+        when(tabulaTableParser.parseAuto(any(PDDocument.class), eq(1))).thenReturn(List.of());
 
         try (MockedStatic<GeneralUtils> guMock = Mockito.mockStatic(GeneralUtils.class)) {
             guMock.when(() -> GeneralUtils.removeExtension("data.pdf")).thenReturn("data");
@@ -57,13 +61,9 @@ class ExtractCSVControllerTest {
                                             Mockito.eq(true)))
                     .thenReturn(List.of(1));
 
-            ResponseEntity<?> response = controller.pdfToCsv(request);
-
-            assertNotNull(response);
-            // Empty page may produce NO_CONTENT or OK with content
-            org.junit.jupiter.api.Assertions.assertTrue(
-                    response.getStatusCode() == HttpStatus.NO_CONTENT
-                            || response.getStatusCode() == HttpStatus.OK);
+            ResponseStatusException exception =
+                    assertThrows(ResponseStatusException.class, () -> controller.pdfToCsv(request));
+            assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatusCode());
         }
     }
 

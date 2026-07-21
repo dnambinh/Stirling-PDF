@@ -15,9 +15,11 @@ import org.apache.commons.csv.QuoteMode;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.server.ResponseStatusException;
 
 import io.swagger.v3.oas.annotations.Operation;
 
@@ -64,7 +66,7 @@ public class ExtractCSVController {
 
             for (int pageNum : pages) {
                 log.info("{}", pageNum);
-                List<TableFragment> fragments = tabulaTableParser.parse(document, pageNum);
+                List<TableFragment> fragments = tabulaTableParser.parseAuto(document, pageNum);
 
                 for (int i = 0; i < fragments.size(); i++) {
                     StringWriter sw = new StringWriter();
@@ -80,7 +82,9 @@ public class ExtractCSVController {
             }
 
             if (csvEntries.isEmpty()) {
-                return ResponseEntity.noContent().build();
+                throw new ResponseStatusException(
+                        HttpStatus.UNPROCESSABLE_ENTITY,
+                        "No usable table was detected with lattice or stream mode");
             } else if (csvEntries.size() == 1) {
                 return createCsvResponse(csvEntries.get(0), baseName);
             } else {

@@ -13,9 +13,11 @@ import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.poi.ss.util.WorkbookUtil;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.core.io.Resource;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.server.ResponseStatusException;
 
 import io.swagger.v3.oas.annotations.Operation;
 
@@ -23,6 +25,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import stirling.software.SPDF.model.api.PDFWithPageNums;
+import stirling.software.SPDF.pdf.parser.PdfModels.TableFragment;
+import stirling.software.SPDF.pdf.parser.TabulaTableParser;
 import stirling.software.common.annotations.AutoJobPostMapping;
 import stirling.software.common.annotations.api.ConvertApi;
 import stirling.software.common.enumeration.ResourceWeight;
@@ -32,12 +36,6 @@ import stirling.software.common.util.TempFile;
 import stirling.software.common.util.TempFileManager;
 import stirling.software.common.util.WebResponseUtils;
 
-import technology.tabula.ObjectExtractor;
-import technology.tabula.Page;
-import technology.tabula.RectangularTextContainer;
-import technology.tabula.Table;
-import technology.tabula.extractors.SpreadsheetExtractionAlgorithm;
-
 @ConvertApi
 @Slf4j
 @RequiredArgsConstructor
@@ -45,6 +43,7 @@ public class ConvertPDFToExcelController {
 
     private final CustomPDFDocumentFactory pdfDocumentFactory;
     private final TempFileManager tempFileManager;
+    private final TabulaTableParser tabulaTableParser;
 
     @AutoJobPostMapping(
             value = "/pdf/xlsx",
@@ -62,19 +61,16 @@ public class ConvertPDFToExcelController {
 
         TempFile tempOut = tempFileManager.createManagedTempFile(".xlsx");
         try (PDDocument document = pdfDocumentFactory.load(request);
-                XSSFWorkbook workbook = new XSSFWorkbook();
-                ObjectExtractor extractor = new ObjectExtractor(document)) {
+                XSSFWorkbook workbook = new XSSFWorkbook()) {
 
             List<Integer> pages = request.getPageNumbersList(document, true);
-            SpreadsheetExtractionAlgorithm sea = new SpreadsheetExtractionAlgorithm();
             int sheetCount = 0;
 
             for (int pageNum : pages) {
-                Page page = extractor.extract(pageNum);
-                List<Table> tables = sea.extract(page);
+                List<TableFragment> tables = tabulaTableParser.parseAuto(document, pageNum);
 
                 for (int tableIdx = 0; tableIdx < tables.size(); tableIdx++) {
-                    Table table = tables.get(tableIdx);
+                    TableFragment table = tables.get(tableIdx);
                     String sheetName =
                             tables.size() == 1
                                     ? String.format(Locale.ROOT, "Page %d", pageNum)
@@ -83,14 +79,14 @@ public class ConvertPDFToExcelController {
 
                     sheetName = getUniqueSheetName(workbook, sheetName);
                     Sheet sheet = workbook.createSheet(sheetName);
-                    List<List<RectangularTextContainer>> rows = table.getRows();
+                    List<List<String>> rows = table.rawRows();
 
                     for (int rowIdx = 0; rowIdx < rows.size(); rowIdx++) {
                         Row excelRow = sheet.createRow(rowIdx);
-                        List<RectangularTextContainer> cells = rows.get(rowIdx);
+                        List<String> cells = rows.get(rowIdx);
                         for (int cellIdx = 0; cellIdx < cells.size(); cellIdx++) {
                             Cell excelCell = excelRow.createCell(cellIdx);
-                            excelCell.setCellValue(cells.get(cellIdx).getText());
+                            excelCell.setCellValue(cells.get(cellIdx));
                         }
                     }
                     sheetCount++;
@@ -98,8 +94,9 @@ public class ConvertPDFToExcelController {
             }
 
             if (sheetCount == 0) {
-                tempOut.close();
-                return ResponseEntity.noContent().build();
+                throw new ResponseStatusException(
+                        HttpStatus.UNPROCESSABLE_ENTITY,
+                        "No usable table was detected with lattice or stream mode");
             }
 
             try (OutputStream os = Files.newOutputStream(tempOut.getPath())) {

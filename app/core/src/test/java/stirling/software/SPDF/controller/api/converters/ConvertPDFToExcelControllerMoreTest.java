@@ -24,13 +24,16 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import stirling.software.SPDF.model.api.PDFWithPageNums;
+import stirling.software.SPDF.pdf.parser.TabulaTableParser;
 import stirling.software.common.service.CustomPDFDocumentFactory;
 import stirling.software.common.util.TempFile;
 import stirling.software.common.util.TempFileManager;
@@ -46,6 +49,7 @@ class ConvertPDFToExcelControllerMoreTest {
 
     @Mock private CustomPDFDocumentFactory pdfDocumentFactory;
     @Mock private TempFileManager tempFileManager;
+    @Spy private TabulaTableParser tabulaTableParser = new TabulaTableParser();
 
     @InjectMocks private ConvertPDFToExcelController controller;
 
@@ -135,9 +139,10 @@ class ConvertPDFToExcelControllerMoreTest {
 
             when(pdfDocumentFactory.load(request)).thenReturn(blankPages(1));
 
-            ResponseEntity<Resource> response = controller.pdfToExcel(request);
-
-            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+            assertThatThrownBy(() -> controller.pdfToExcel(request))
+                    .isInstanceOf(ResponseStatusException.class)
+                    .extracting(e -> ((ResponseStatusException) e).getStatusCode())
+                    .isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
         }
 
         @Test
@@ -149,9 +154,10 @@ class ConvertPDFToExcelControllerMoreTest {
 
             when(pdfDocumentFactory.load(request)).thenReturn(blankPages(3));
 
-            ResponseEntity<Resource> response = controller.pdfToExcel(request);
-
-            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+            assertThatThrownBy(() -> controller.pdfToExcel(request))
+                    .isInstanceOf(ResponseStatusException.class)
+                    .extracting(e -> ((ResponseStatusException) e).getStatusCode())
+                    .isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
         }
     }
 
@@ -169,18 +175,15 @@ class ConvertPDFToExcelControllerMoreTest {
 
             when(pdfDocumentFactory.load(request)).thenReturn(borderedTableDoc());
 
-            ResponseEntity<Resource> response = controller.pdfToExcel(request);
-
-            // Lattice detection depends on the Tabula build; accept either outcome but assert the
-            // success path produced a real, non-empty xlsx body.
-            if (response.getStatusCode() == HttpStatus.OK) {
+            try {
+                ResponseEntity<Resource> response = controller.pdfToExcel(request);
                 assertThat(response.getHeaders().getContentType().toString())
                         .contains("spreadsheetml.sheet");
                 assertThat(response.getHeaders().getContentDisposition().getFilename())
                         .isEqualTo("table.xlsx");
                 assertThat(response.getBody()).isNotNull();
-            } else {
-                assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+            } catch (ResponseStatusException e) {
+                assertThat(e.getStatusCode()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
             }
         }
     }

@@ -139,6 +139,32 @@ class TabulaTableParserGapTest {
         }
     }
 
+    @Nested
+    @DisplayName("Auto mode")
+    class AutoMode {
+
+        @Test
+        @DisplayName("falls back to stream mode for a borderless table")
+        void autoFallsBackToStream() throws Exception {
+            byte[] pdf =
+                    pdfWithText(new String[] {"Name Age City", "Alice 30 Paris", "Bob 25 Rome"});
+            try (PDDocument doc = Loader.loadPDF(pdf)) {
+                List<TableFragment> fragments = parser.parseAuto(doc, 1);
+                assertFalse(fragments.isEmpty());
+                assertTrue(fragments.get(0).columnCount() >= 2);
+            }
+        }
+
+        @Test
+        @DisplayName("returns no table when both extraction modes are unusable")
+        void autoReturnsEmptyForBlankPage() throws Exception {
+            byte[] pdf = blankPdf();
+            try (PDDocument doc = Loader.loadPDF(pdf)) {
+                assertTrue(parser.parseAuto(doc, 1).isEmpty());
+            }
+        }
+    }
+
     // ── lattice mode with a real bordered grid ───────────────────────────────
 
     @Nested
