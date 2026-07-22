@@ -30,6 +30,7 @@ import stirling.software.SPDF.model.api.PDFWithPageNums;
 import stirling.software.SPDF.pdf.parser.PdfModels.Bounds;
 import stirling.software.SPDF.pdf.parser.PdfModels.TableFragment;
 import stirling.software.SPDF.pdf.parser.TabulaTableParser;
+import stirling.software.SPDF.service.PaddleTableOcrService;
 import stirling.software.common.service.CustomPDFDocumentFactory;
 
 /**
@@ -42,6 +43,7 @@ class ExtractCSVControllerMoreTest {
 
     @Mock private CustomPDFDocumentFactory pdfDocumentFactory;
     @Mock private TabulaTableParser tabulaTableParser;
+    @Mock private PaddleTableOcrService paddleTableOcrService;
 
     @InjectMocks private ExtractCSVController controller;
 

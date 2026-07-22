@@ -77,6 +77,7 @@ public class ApplicationProperties {
     private ProcessExecutor processExecutor = new ProcessExecutor();
     private PdfEditor pdfEditor = new PdfEditor();
     private AiEngine aiEngine = new AiEngine();
+    private TableOcr tableOcr = new TableOcr();
     private Mcp mcp = new Mcp();
     private InternalApi internalApi = new InternalApi();
     private Cluster cluster = new Cluster();
@@ -300,6 +301,24 @@ public class ApplicationProperties {
          * explicitly requests it via {@code AiEngineClient.postWithTimeout}.
          */
         private int longRunningTimeoutSeconds = 600;
+    }
+
+    @Data
+    public static class TableOcr {
+        /** Enables PP-OCRv6 + PP-StructureV3 for the PDF-to-CSV/XLSX endpoints. */
+        private boolean enabled = false;
+
+        /** Internal URL of the PaddleOCR sidecar; this should not be exposed outside Docker. */
+        private String url = "http://paddleocr-table:8000";
+
+        /** Connection timeout for detecting an unavailable sidecar. */
+        private int connectTimeoutSeconds = 10;
+
+        /** OCR jobs are CPU-heavy and may take several minutes for multi-page documents. */
+        private int timeoutSeconds = 900;
+
+        /** Upper bound for a single OCR request to protect the shared internal service. */
+        private int maxPages = 50;
     }
 
     /**

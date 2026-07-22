@@ -34,6 +34,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import stirling.software.SPDF.model.api.PDFWithPageNums;
 import stirling.software.SPDF.pdf.parser.TabulaTableParser;
+import stirling.software.SPDF.service.PaddleTableOcrService;
 import stirling.software.common.service.CustomPDFDocumentFactory;
 import stirling.software.common.util.TempFile;
 import stirling.software.common.util.TempFileManager;
@@ -50,6 +51,7 @@ class ConvertPDFToExcelControllerMoreTest {
     @Mock private CustomPDFDocumentFactory pdfDocumentFactory;
     @Mock private TempFileManager tempFileManager;
     @Spy private TabulaTableParser tabulaTableParser = new TabulaTableParser();
+    @Mock private PaddleTableOcrService paddleTableOcrService;
 
     @InjectMocks private ConvertPDFToExcelController controller;
 

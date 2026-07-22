@@ -30,6 +30,7 @@ import stirling.software.SPDF.config.swagger.CsvConversionResponse;
 import stirling.software.SPDF.model.api.PDFWithPageNums;
 import stirling.software.SPDF.pdf.parser.PdfModels.TableFragment;
 import stirling.software.SPDF.pdf.parser.TabulaTableParser;
+import stirling.software.SPDF.service.PaddleTableOcrService;
 import stirling.software.common.annotations.AutoJobPostMapping;
 import stirling.software.common.annotations.api.ConvertApi;
 import stirling.software.common.enumeration.ResourceWeight;
@@ -44,6 +45,7 @@ public class ExtractCSVController {
 
     private final CustomPDFDocumentFactory pdfDocumentFactory;
     private final TabulaTableParser tabulaTableParser;
+    private final PaddleTableOcrService paddleTableOcrService;
 
     @AutoJobPostMapping(
             value = "/pdf/csv",
@@ -57,6 +59,15 @@ public class ExtractCSVController {
                             + " Input:PDF Output:CSV Type:SISO")
     public ResponseEntity<?> pdfToCsv(@ModelAttribute PDFWithPageNums request) throws Exception {
         String baseName = getBaseName(request.getFileInput().getOriginalFilename());
+
+        if (paddleTableOcrService.isEnabled()) {
+            PaddleTableOcrService.ExtractionResult result =
+                    paddleTableOcrService.extract(
+                            request, PaddleTableOcrService.OutputFormat.CSV);
+            return WebResponseUtils.fileToWebResponse(
+                    result.tempFile(), result.filename(), result.mediaType());
+        }
+
         List<CsvEntry> csvEntries = new ArrayList<>();
 
         try (PDDocument document = pdfDocumentFactory.load(request)) {

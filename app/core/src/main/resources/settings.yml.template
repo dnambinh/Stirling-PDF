@@ -367,6 +367,13 @@ aiEngine:
   url: http://localhost:5001 # URL of the Python AI engine
   timeoutSeconds: 120 # Timeout in seconds for AI engine requests
 
+tableOcr:
+  enabled: false # Use the internal PP-OCRv6 + PP-StructureV3 service for PDF-to-CSV/XLSX
+  url: http://paddleocr-table:8000 # Internal Docker URL; do not publish this service to the LAN
+  connectTimeoutSeconds: 10
+  timeoutSeconds: 900
+  maxPages: 50
+
 policies:
   # Folder automations can read from and write to the directories you allow here, so treat this as a
   # security boundary. Leave allowedFolderRoots empty (default) to disable folder sources/outputs

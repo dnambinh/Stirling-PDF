@@ -27,6 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 import stirling.software.SPDF.model.api.PDFWithPageNums;
 import stirling.software.SPDF.pdf.parser.PdfModels.TableFragment;
 import stirling.software.SPDF.pdf.parser.TabulaTableParser;
+import stirling.software.SPDF.service.PaddleTableOcrService;
 import stirling.software.common.annotations.AutoJobPostMapping;
 import stirling.software.common.annotations.api.ConvertApi;
 import stirling.software.common.enumeration.ResourceWeight;
@@ -44,6 +45,7 @@ public class ConvertPDFToExcelController {
     private final CustomPDFDocumentFactory pdfDocumentFactory;
     private final TempFileManager tempFileManager;
     private final TabulaTableParser tabulaTableParser;
+    private final PaddleTableOcrService paddleTableOcrService;
 
     @AutoJobPostMapping(
             value = "/pdf/xlsx",
@@ -58,6 +60,14 @@ public class ConvertPDFToExcelController {
             throws Exception {
         String baseName =
                 GeneralUtils.removeExtension(request.getFileInput().getOriginalFilename());
+
+        if (paddleTableOcrService.isEnabled()) {
+            PaddleTableOcrService.ExtractionResult result =
+                    paddleTableOcrService.extract(
+                            request, PaddleTableOcrService.OutputFormat.XLSX);
+            return WebResponseUtils.fileToWebResponse(
+                    result.tempFile(), result.filename(), result.mediaType());
+        }
 
         TempFile tempOut = tempFileManager.createManagedTempFile(".xlsx");
         try (PDDocument document = pdfDocumentFactory.load(request);

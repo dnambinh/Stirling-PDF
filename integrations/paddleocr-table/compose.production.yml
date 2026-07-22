@@ -1,0 +1,66 @@
+services:
+  stirling-pdf:
+    environment:
+      TABLEOCR_ENABLED: "${TABLEOCR_ENABLED:-true}"
+      TABLEOCR_URL: "http://paddleocr-table:8000"
+      TABLEOCR_CONNECTTIMEOUTSECONDS: "10"
+      TABLEOCR_TIMEOUTSECONDS: "900"
+      TABLEOCR_MAXPAGES: "50"
+    depends_on:
+      paddleocr-table:
+        condition: service_healthy
+    networks:
+      - pdf-internal
+
+  paddleocr-table:
+    build:
+      context: ${STIRLING_SOURCE_DIR:-/opt/Stirling-PDF}/integrations/paddleocr-table
+      dockerfile: Dockerfile
+    image: internal/paddleocr-table:3.7.0-api-cpu
+    container_name: paddleocr-table
+    restart: unless-stopped
+    expose:
+      - "8000"
+    environment:
+      OCR_DEVICE: "cpu"
+      OCR_TIER: "medium"
+      OCR_WORK_DIR: "/work"
+      OCR_MAX_FILE_SIZE_MB: "200"
+      OCR_MAX_PAGES: "50"
+      OCR_MAX_PENDING_JOBS: "2"
+      OMP_NUM_THREADS: "6"
+      MKL_NUM_THREADS: "6"
+      HF_HOME: "/home/ocr/.cache/huggingface"
+    volumes:
+      - ${PADDLE_OCR_DATA_DIR:-/opt/paddleocr-table-service}/models/paddlex:/home/ocr/.paddlex:rw
+      - ${PADDLE_OCR_DATA_DIR:-/opt/paddleocr-table-service}/models/paddleocr:/home/ocr/.paddleocr:rw
+      - ${PADDLE_OCR_DATA_DIR:-/opt/paddleocr-table-service}/models/cache:/home/ocr/.cache:rw
+      - ${PADDLE_OCR_DATA_DIR:-/opt/paddleocr-table-service}/work:/work:rw
+    shm_size: "2gb"
+    mem_limit: 8g
+    cpus: "6.0"
+    pids_limit: 512
+    stop_grace_period: 60s
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          python -c "import urllib.request;
+          urllib.request.urlopen('http://localhost:8000/health', timeout=5)"
+      interval: 30s
+      timeout: 10s
+      retries: 10
+      start_period: 300s
+    logging:
+      driver: local
+      options:
+        max-size: "20m"
+        max-file: "5"
+    networks:
+      - pdf-internal
+
+networks:
+  pdf-internal:
+    driver: bridge
