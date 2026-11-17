@@ -43,6 +43,10 @@ if args and (args[0]=='inspect' or args[:2]==['image','inspect']):
  fmt=args[args.index('--format')+1]
  if fmt=='{{.Id}}':print('wrong' if os.environ.get('FAIL')=='runtime' else next(value for ref,value in json.loads(os.environ['RUNTIME_MAP']).items() if ref in args))
  elif 'com.fev.deploy-run' in fmt:print(args[-1].removeprefix('handlepdf-unit-'))
+ elif fmt=='{{.State.Health.Status}}':
+  once=pathlib.Path(os.environ['ONCE']);bad=os.environ.get('FAIL')=='ocr-once' and not once.exists()
+  print('unhealthy' if bad else 'healthy')
+  if bad:once.touch()
  elif 'revision' in fmt:print(os.environ['SHA'])
  else:print('fev/handlepdf:previous')
 elif args and args[0]=='compose':
@@ -91,6 +95,11 @@ elif args and args[0]=='compose':
         self.assertEqual(list(self.app.glob('.deploy-*')),[])
     def test_backup_failure_restores_release(self):self.assert_rollback('backup')
     def test_failed_replacement_restores_release(self):self.assert_rollback('health')
+    def test_unhealthy_ocr_is_not_skipped(self):
+        r=self.deploy();self.assertEqual(r.returncode,0,r.stdout+r.stderr)
+        (self.base/'docker.log').write_text('')
+        r=self.deploy('ocr-once');self.assertEqual(r.returncode,0,r.stdout+r.stderr)
+        self.assertIn('"buildx", "build"',self.log())
     def test_success_and_noop(self):
         r=self.deploy();self.assertEqual(r.returncode,0,r.stdout+r.stderr)
         self.assertEqual((self.app/'DEPLOYED_COMMIT').read_text().strip(),self.sha)
