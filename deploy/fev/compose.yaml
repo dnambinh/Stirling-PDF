@@ -16,7 +16,8 @@ services:
       ocr:
         condition: service_healthy
     mem_limit: 3g
-    cpus: 2
+    cpus: 16
+    cpu_shares: 1024
     pids_limit: 512
     stop_grace_period: 900s
     security_opt:
@@ -49,7 +50,8 @@ services:
     - ./ocr/work:/work
     shm_size: 2gb
     mem_limit: 6g
-    cpus: 4
+    cpus: 16
+    cpu_shares: 256
     pids_limit: 512
     stop_grace_period: 900s
     security_opt:
