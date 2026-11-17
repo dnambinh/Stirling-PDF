@@ -1,0 +1,8 @@
+[Unit]
+Description=HandlePDF settings, model and deployment backup
+Requires=docker.service
+After=docker.service
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/backup-handlepdf-container
+UMask=0077

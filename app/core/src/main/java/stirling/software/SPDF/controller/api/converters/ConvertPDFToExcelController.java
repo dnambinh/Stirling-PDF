@@ -63,8 +63,7 @@ public class ConvertPDFToExcelController {
 
         if (paddleTableOcrService.isEnabled()) {
             PaddleTableOcrService.ExtractionResult result =
-                    paddleTableOcrService.extract(
-                            request, PaddleTableOcrService.OutputFormat.XLSX);
+                    paddleTableOcrService.extract(request, PaddleTableOcrService.OutputFormat.XLSX);
             return WebResponseUtils.fileToWebResponse(
                     result.tempFile(), result.filename(), result.mediaType());
         }

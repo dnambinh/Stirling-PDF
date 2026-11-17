@@ -1,0 +1,77 @@
+name: handlepdf
+services:
+  core:
+    image: stirling-pdf-core:v2.14.2-paddle-table
+    restart: unless-stopped
+    ports:
+    - 127.0.0.1:18032:8080
+    env_file:
+    - path: core.env
+      format: raw
+    volumes:
+    - ./data/configs:/configs
+    - ./data/tmp:/tmp/stirling-pdf
+    - ./data/tessdata:/usr/share/tessdata
+    depends_on:
+      ocr:
+        condition: service_healthy
+    mem_limit: 3g
+    cpus: 2
+    pids_limit: 512
+    stop_grace_period: 900s
+    security_opt:
+    - no-new-privileges:true
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - curl -fs http://localhost:8080/api/v1/info/status | grep -q UP
+      interval: 15s
+      timeout: 10s
+      retries: 12
+      start_period: 120s
+    networks:
+    - pdf-internal
+    logging:
+      driver: local
+      options:
+        max-size: 20m
+        max-file: '5'
+  ocr:
+    image: internal/paddleocr-table:3.7.0-api-cpu
+    restart: unless-stopped
+    env_file:
+    - path: ocr.env
+      format: raw
+    volumes:
+    - ./ocr/models/paddlex:/home/ocr/.paddlex
+    - ./ocr/models/paddleocr:/home/ocr/.paddleocr
+    - ./ocr/models/cache:/home/ocr/.cache
+    - ./ocr/work:/work
+    shm_size: 2gb
+    mem_limit: 6g
+    cpus: 4
+    pids_limit: 512
+    stop_grace_period: 900s
+    security_opt:
+    - no-new-privileges:true
+    healthcheck:
+      test:
+      - CMD-SHELL
+      - python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health',
+        timeout=5)"
+      interval: 15s
+      timeout: 10s
+      retries: 20
+      start_period: 300s
+    networks:
+      pdf-internal:
+        aliases:
+        - paddleocr-table
+    logging:
+      driver: local
+      options:
+        max-size: 20m
+        max-file: '5'
+networks:
+  pdf-internal:
+    driver: bridge

@@ -90,8 +90,7 @@ class ConvertPDFToExcelControllerTest {
 
             ResponseStatusException exception =
                     assertThrows(
-                            ResponseStatusException.class,
-                            () -> controller.pdfToExcel(request));
+                            ResponseStatusException.class, () -> controller.pdfToExcel(request));
             assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, exception.getStatusCode());
         }
     }

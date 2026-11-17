@@ -1,0 +1,36 @@
+#!/bin/sh
+# Static, fast login help: no network requests, passwords or database queries.
+printf '\n\033[1;36m==============================================================\n'
+printf ' FEV-APP-01  |  SHARED APPLICATION SERVER\n'
+printf '==============================================================\033[0m\n'
+cat <<'HELP'
+Management SSH:  fev_app_01@172.16.10.235
+Purchasing web:  http://172.16.10.230
+App directory:  /srv/apps/purchasing
+
+DEPLOY LATEST MAIN (one command):
+  sudo deploy-purchasing
+  Fetch GitHub -> isolated checks -> Docker build -> backup
+  -> migrations -> replace app -> health check / code rollback.
+  A healthy deployment already at main is skipped.
+
+STATUS AND LOGS:
+  sudo purchasing-status
+  sudo purchasing-logs
+  sudo journalctl -u purchasing-container-backup.service -n 30 --no-pager
+
+BACKUP NOW:
+  sudo backup-purchasing-container
+  Daily: 03:15 Vietnam time. Backups: /srv/backups/purchasing/daily
+  Backups are local to this VM; NAS/off-host copy is not configured.
+
+SHOW THIS HELP AGAIN:
+  fev-help
+
+Shared application operations. Keep source VMs until cutover is verified.
+HELP
+printf '\033[1;36m==============================================================\033[0m\n\n'
+
+/usr/local/bin/itam-help
+
+/usr/local/bin/handlepdf-help

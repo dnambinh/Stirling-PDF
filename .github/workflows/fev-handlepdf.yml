@@ -1,0 +1,23 @@
+name: FEV HandlePDF deployment checks
+on:
+  pull_request:
+    branches: [production/handlepdf]
+  push:
+    branches: [production/handlepdf]
+permissions:
+  contents: read
+jobs:
+  deployment:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deployment transaction tests
+        run: sudo python3 deploy/fev/tests/test_deploy.py
+      - name: Shell syntax
+        run: bash -n deploy/fev/deploy-container.sh deploy/fev/deploy-handlepdf deploy/fev/backup-handlepdf-container deploy/fev/install-tools.sh
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install openpyxl
+      - name: OCR unit tests
+        run: python -m unittest discover -s integrations/paddleocr-table/tests -v

@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+cd /srv/apps/handlepdf
+files=(-f compose.yaml)
+[[ ! -f compose.deploy.yaml ]] || files+=(-f compose.deploy.yaml)
+[[ ! -f compose.public.yaml ]] || files+=(-f compose.public.yaml)
+docker compose "${files[@]}" ps
+printf 'Deployed commit: '; cat DEPLOYED_COMMIT
+curl -fsS --max-time 15 http://127.0.0.1:18032/api/v1/info/status; echo
+docker compose "${files[@]}" exec -T ocr python -c "import urllib.request; print(urllib.request.urlopen('http://localhost:8000/health').read().decode())"
+systemctl list-timers handlepdf-container-backup.timer --no-pager

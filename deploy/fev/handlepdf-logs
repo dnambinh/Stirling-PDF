@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+cd /srv/apps/handlepdf
+files=(-f compose.yaml)
+[[ ! -f compose.deploy.yaml ]] || files+=(-f compose.deploy.yaml)
+[[ ! -f compose.public.yaml ]] || files+=(-f compose.public.yaml)
+exec docker compose "${files[@]}" logs --tail 100 -f
