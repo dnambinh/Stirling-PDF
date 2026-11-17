@@ -117,3 +117,6 @@ integrations/paddleocr-table/output/
 integrations/paddleocr-table/input/
 *.tar
 *.tar.gz
+
+# Deployment scripts/docs are consumed by the host, not the app compiler.
+/deploy/fev/
