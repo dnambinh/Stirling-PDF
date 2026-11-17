@@ -14,6 +14,24 @@ The command fetches this branch, refuses local edits and concurrent deployments,
 
 `main` follows a different upstream version and requires a separate upgrade review. Production environment files and user documents stay outside Git.
 
+## Shared CPU and bounded RAM
+
+FEV-APP-01 currently has 16 vCPUs and 16 GiB RAM. The production template allows
+both core and OCR to use up to 16 CPUs when available. CPU shares are 1024 for
+core and 256 for OCR, so OCR has lower relative weight during CPU contention.
+These values do not reserve CPU cores. Memory ceilings remain 3 GiB for core
+and 6 GiB for OCR; unused memory stays available to the other applications.
+
+Set `OMP_NUM_THREADS=16` and `MKL_NUM_THREADS=16` in the private production
+`/srv/apps/handlepdf/ocr.env`. Keep single-job OCR admission. The installed
+PaddleOCR inference default remains 10 threads; this policy removes the former
+4-CPU scheduling bottleneck without changing inference code.
+
+Production `compose.yaml` and `ocr.env` live outside the Git checkout and are
+included in backups. The deployment command retains them. Review these ceilings
+again if the VM CPU count changes; do not assume a VM CPU upgrade rewrites Docker
+quotas. The disposable deployment checks intentionally use smaller CPU limits.
+
 ## Inspect and back up
 
 ```sh
