@@ -31,7 +31,10 @@ compose() {
  [[ ! -f "$APP_ROOT/compose.public.yaml" ]] || files+=(-f "$APP_ROOT/compose.public.yaml")
  docker compose "${files[@]}" "$@"
 }
-health() { curl -fsS --max-time 15 http://127.0.0.1:18032/api/v1/info/status >/dev/null; }
+health() {
+ curl -fsS --max-time 15 http://127.0.0.1:18032/api/v1/info/status >/dev/null &&
+ [[ $(docker inspect --format '{{.State.Health.Status}}' "$(compose ps -q ocr)") == healthy ]]
+}
 if [[ -f DEPLOYED_COMMIT && $(cat DEPLOYED_COMMIT) == "$sha" ]] && health \
  && [[ $(docker inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$(compose ps -q core)") == "$sha" ]] \
  && [[ $(docker inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$(compose ps -q ocr)") == "$sha" ]]; then
