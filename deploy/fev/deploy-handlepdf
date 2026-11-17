@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+umask 077
+[[ $EUID -eq 0 && $# -eq 0 ]] || { echo 'Usage: sudo deploy-handlepdf'; exit 1; }
+base=/srv/apps/handlepdf
+branch=production/handlepdf
+repo=git@github.com:dnambinh/Stirling-PDF.git
+exec 8>"$base/bootstrap.lock"
+flock -n 8 || { echo 'HandlePDF deployment is already running'; exit 1; }
+export GIT_SSH_COMMAND='ssh -F /dev/null -i /etc/handlepdf-deploy/github.key -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o UserKnownHostsFile=/etc/handlepdf-deploy/known_hosts -o HostKeyAlias=github.com -o HostName=ssh.github.com -p 443'
+export GIT_TERMINAL_PROMPT=0
+if [[ ! -d $base/source/.git ]]; then git clone --depth 1 --branch "$branch" --single-branch "$repo" "$base/source"; fi
+[[ $(git -C "$base/source" remote get-url origin) == "$repo" ]] || exit 1
+[[ -z $(git -C "$base/source" status --porcelain) ]] || { echo 'Source has local changes; save them first.'; exit 1; }
+git -C "$base/source" fetch origin "+refs/heads/$branch:refs/remotes/origin/$branch"
+git -C "$base/source" switch "$branch"
+git -C "$base/source" merge --ff-only "origin/$branch"
+exec bash "$base/source/deploy/fev/deploy-container.sh"

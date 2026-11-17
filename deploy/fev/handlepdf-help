@@ -1,0 +1,30 @@
+#!/bin/sh
+printf '\n\033[1;36m================ HANDLEPDF OPERATIONS ====================\033[0m\n'
+cat <<'HELP'
+Web: http://172.16.10.232:8080
+Management SSH: fev_app_01@172.16.10.235
+Directory: /srv/apps/handlepdf
+Repository: dnambinh/Stirling-PDF
+Deployment branch: production/handlepdf (main tracks a different upstream version)
+
+DEPLOY REVIEWED CODE (one command):
+  sudo deploy-handlepdf
+  GitHub production/handlepdf -> backend check -> OCR unit tests
+  -> Docker build -> isolated real OCR XLSX/CSV -> backup
+  -> replace services -> health check / image rollback.
+  Unchanged healthy deployments are skipped.
+
+STATUS / LOGS:
+  sudo handlepdf-status
+  sudo handlepdf-logs
+  sudo journalctl -u handlepdf-container-backup.service -n 30 --no-pager
+
+BACKUP NOW:
+  sudo backup-handlepdf-container
+  Daily 03:45 Vietnam: /srv/backups/handlepdf/daily
+  Local application backups only; NAS/off-host replication is not configured.
+  Keep the migration runtime-images archive for full server recovery.
+
+SHOW THIS HELP AGAIN: handlepdf-help  (all apps: fev-help)
+HELP
+printf '\033[1;36m==========================================================\033[0m\n'

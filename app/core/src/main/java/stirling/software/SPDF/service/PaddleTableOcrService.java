@@ -92,8 +92,7 @@ public class PaddleTableOcrService {
                             outputFile);
             return new ExtractionResult(
                     outputFile,
-                    sanitizeResponseFilename(
-                            metadata.filename(), originalFilename, outputFormat),
+                    sanitizeResponseFilename(metadata.filename(), originalFilename, outputFormat),
                     metadata.mediaType() != null
                             ? metadata.mediaType()
                             : outputFormat.getDefaultMediaType());
@@ -156,9 +155,7 @@ public class PaddleTableOcrService {
                                         outputFile.getPath(),
                                         StandardCopyOption.REPLACE_EXISTING);
                                 return new UpstreamMetadata(
-                                        response.getHeaders()
-                                                .getContentDisposition()
-                                                .getFilename(),
+                                        response.getHeaders().getContentDisposition().getFilename(),
                                         response.getHeaders().getContentType());
                             });
             if (metadata == null) {
@@ -180,9 +177,7 @@ public class PaddleTableOcrService {
                         exception);
             }
             throw new ResponseStatusException(
-                    HttpStatus.SERVICE_UNAVAILABLE,
-                    "Table OCR service is unavailable",
-                    exception);
+                    HttpStatus.SERVICE_UNAVAILABLE, "Table OCR service is unavailable", exception);
         }
     }
 
@@ -275,8 +270,7 @@ public class PaddleTableOcrService {
         }
     }
 
-    public record ExtractionResult(
-            TempFile tempFile, String filename, MediaType mediaType) {}
+    public record ExtractionResult(TempFile tempFile, String filename, MediaType mediaType) {}
 
     private record UpstreamMetadata(String filename, MediaType mediaType) {}
 }

@@ -62,8 +62,7 @@ public class ExtractCSVController {
 
         if (paddleTableOcrService.isEnabled()) {
             PaddleTableOcrService.ExtractionResult result =
-                    paddleTableOcrService.extract(
-                            request, PaddleTableOcrService.OutputFormat.CSV);
+                    paddleTableOcrService.extract(request, PaddleTableOcrService.OutputFormat.CSV);
             return WebResponseUtils.fileToWebResponse(
                     result.tempFile(), result.filename(), result.mediaType());
         }

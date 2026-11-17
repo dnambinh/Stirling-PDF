@@ -1,0 +1,59 @@
+services:
+  ocr:
+    image: ${HANDLEPDF_CHECK_OCR_IMAGE:?}
+    labels:
+      com.fev.deploy-run: ${HANDLEPDF_CHECK_RUN:?}
+    environment:
+      OCR_DEVICE: cpu
+      OCR_TIER: medium
+      OCR_WORK_DIR: /work
+      OCR_MAX_PAGES: '2'
+      OCR_MAX_PENDING_JOBS: '1'
+      OMP_NUM_THREADS: '2'
+      MKL_NUM_THREADS: '2'
+    volumes:
+      - ${HANDLEPDF_CHECK_ROOT:?}/paddlex:/home/ocr/.paddlex
+      - ${HANDLEPDF_CHECK_ROOT:?}/paddleocr:/home/ocr/.paddleocr
+      - ${HANDLEPDF_CHECK_ROOT:?}/cache:/home/ocr/.cache
+      - ${HANDLEPDF_CHECK_ROOT:?}/work:/work
+    healthcheck:
+      test: [CMD-SHELL, "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=5)\""]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 120s
+    shm_size: 2gb
+    mem_limit: 6g
+    cpus: 2
+    stop_grace_period: 20s
+  core:
+    image: ${HANDLEPDF_CHECK_CORE_IMAGE:?}
+    labels:
+      com.fev.deploy-run: ${HANDLEPDF_CHECK_RUN:?}
+    environment:
+      DISABLE_ADDITIONAL_FEATURES: 'true'
+      SECURITY_ENABLELOGIN: 'false'
+      STORAGE_ENABLED: 'false'
+      TABLEOCR_ENABLED: 'true'
+      TABLEOCR_URL: http://ocr:8000
+      TABLEOCR_TIMEOUTSECONDS: '900'
+      TABLEOCR_MAXPAGES: '2'
+      JAVA_CUSTOM_OPTS: -Xms256m -Xmx1g
+      SYSTEM_ENABLEANALYTICS: 'false'
+      SYSTEM_ENABLEPOSTHOG: 'false'
+      SYSTEM_ENABLESCARF: 'false'
+    volumes:
+      - ${HANDLEPDF_CHECK_ROOT:?}/configs:/configs
+      - ${HANDLEPDF_CHECK_ROOT:?}/tmp:/tmp/stirling-pdf
+    depends_on:
+      ocr:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD-SHELL, curl -fs http://localhost:8080/api/v1/info/status | grep -q UP]
+      interval: 5s
+      timeout: 5s
+      retries: 60
+      start_period: 120s
+    mem_limit: 1536m
+    cpus: 2
+    stop_grace_period: 20s

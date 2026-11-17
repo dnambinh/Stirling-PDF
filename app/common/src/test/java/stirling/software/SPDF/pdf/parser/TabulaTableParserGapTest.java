@@ -146,12 +146,18 @@ class TabulaTableParserGapTest {
         @Test
         @DisplayName("falls back to stream mode for a borderless table")
         void autoFallsBackToStream() throws Exception {
-            byte[] pdf =
-                    pdfWithText(new String[] {"Name Age City", "Alice 30 Paris", "Bob 25 Rome"});
+            List<List<String>> expected =
+                    List.of(
+                            List.of("Name", "Age", "City"),
+                            List.of("Alice", "30", "Paris"),
+                            List.of("Bob", "25", "Rome"));
+            byte[] pdf = pdfWithColumns(expected);
             try (PDDocument doc = Loader.loadPDF(pdf)) {
+                assertTrue(parser.parse(doc, 1).isEmpty(), "fixture must have no ruled grid");
                 List<TableFragment> fragments = parser.parseAuto(doc, 1);
                 assertFalse(fragments.isEmpty());
-                assertTrue(fragments.get(0).columnCount() >= 2);
+                assertEquals(3, fragments.get(0).columnCount());
+                assertEquals(expected, fragments.get(0).rawRows());
             }
         }
 
@@ -297,6 +303,28 @@ class TabulaTableParserGapTest {
                     cs.newLineAtOffset(72f, y);
                     cs.showText(line);
                     cs.endText();
+                    y -= 20f;
+                }
+            }
+            return save(doc);
+        }
+    }
+
+    /** Draws separate aligned columns so stream mode can infer real whitespace boundaries. */
+    private static byte[] pdfWithColumns(List<List<String>> rows) throws Exception {
+        try (PDDocument doc = new PDDocument()) {
+            PDPage page = new PDPage(PDRectangle.A4);
+            doc.addPage(page);
+            try (PDPageContentStream cs = new PDPageContentStream(doc, page)) {
+                cs.setFont(new PDType1Font(Standard14Fonts.FontName.HELVETICA), 12);
+                float y = 720f;
+                for (List<String> row : rows) {
+                    for (int column = 0; column < row.size(); column++) {
+                        cs.beginText();
+                        cs.newLineAtOffset(72f + column * 150f, y);
+                        cs.showText(row.get(column));
+                        cs.endText();
+                    }
                     y -= 20f;
                 }
             }
