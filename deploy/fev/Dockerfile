@@ -44,7 +44,7 @@ COPY --from=layers --chown=1000:1000 /layers/snapshot-dependencies/ /app/
 COPY --from=layers --chown=1000:1000 /layers/application/ /app/
 COPY --from=app-build --chown=1000:1000 /build/build/libs/restart-helper.jar /restart-helper.jar
 COPY --chown=1000:1000 scripts/ /scripts/
-RUN chmod +x /scripts/*
+RUN set -eu; set -- /app/stirling-pdf-*.jar; test "$#" = 1; mv "$1" /app/app.jar; chmod +x /scripts/*
 ENV VERSION_TAG=fev-production
 FROM ${OCR_RUNTIME} AS ocr
 ARG DEPLOY_SHA=unknown
